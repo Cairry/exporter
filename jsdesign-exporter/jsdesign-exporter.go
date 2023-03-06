@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Gin/jsdesign-exporter/config"
+	"exporter/config"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -67,7 +67,7 @@ func main() {
 
 	// 初始化配置文件
 	config.Config()
-	
+
 	// 探测 Domain
 	go Gauge(config.DomainMap)
 
