@@ -1,4 +1,7 @@
-dominlist:
+server:
+  port: 8081
+
+domainlist:
   baidu: "www.baidu.com"
   qq: "www.qq.com"
   weix: "www.weix.com"

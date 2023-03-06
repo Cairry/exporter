@@ -8,16 +8,12 @@ import (
 	"os"
 )
 
-type DomainList struct {
-	Name   string `yoml:"name"`
-	Domain string `yoml:"domain"`
-}
-
 var (
 	// yaml 转 map
 	resultMap = make(map[string]map[string]string)
 	// DomainMap 获取最终子map
 	DomainMap = make(map[string]string)
+	ServerMap = make(map[string]string)
 )
 
 func Config() {
@@ -32,20 +28,21 @@ func Config() {
 	defer file.Close()
 
 	// 读取文件
-	input, _ := ioutil.ReadAll(file)
+	data, _ := ioutil.ReadAll(file)
 
 	// 解析文件，输出给 resultMap, out: map[dominlist:map[baidu:www.baidu.com qq:www.qq.com]]
-	if err := yaml.Unmarshal(input, &resultMap); err != nil {
+	if err := yaml.Unmarshal(data, &resultMap); err != nil {
 		log.Fatalln(err)
 	}
-	//fmt.Println(resultMap)
 
 	// 获取 resultMap 中的value 子map「如：map[baidu:www.baidu.com qq:www.qq.com]」
-	for _, value := range resultMap {
-		for i, v := range value {
-			// 新 map 写入数据
-			DomainMap[i] = v
-		}
+	for key, value := range resultMap["domainlist"] {
+		DomainMap[key] = value
+	}
+
+	// 获取端口号
+	for portKey, portValue := range resultMap["server"] {
+		ServerMap[portKey] = portValue
 	}
 
 }

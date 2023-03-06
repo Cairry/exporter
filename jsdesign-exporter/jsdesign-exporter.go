@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Gin/exporter/config"
+	"Gin/jsdesign-exporter/config"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -57,16 +57,17 @@ func RunServer() {
 			promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}).ServeHTTP(writer, request)
 	})
 
-	if err := http.ListenAndServe(":8081", nil); err != nil {
+	if err := http.ListenAndServe(":"+config.ServerMap["port"], nil); err != nil {
 		fmt.Println(err)
 	}
+
 }
 
 func main() {
 
 	// 初始化配置文件
 	config.Config()
-
+	
 	// 探测 Domain
 	go Gauge(config.DomainMap)
 
