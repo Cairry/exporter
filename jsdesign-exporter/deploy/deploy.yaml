@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jsdesign-exporter-configmap
+  namespace: default
+data:
+  config.yaml: |-
+    server:
+      port: 8081
+
+    domainlist:
+      kubernetes: "https://kubernetes:443"
+      cms: "http://js-design-cms:9090"
+      norris: "http://js-design-norris:9001"
+      hedwig: "http://js-design-hedwig:3011"
+      server: "http://js-design-server:3002"
+      nginx: "http://js-design-nginx:80"
+      search: "http://js-design-search:9003"
+      wood: "http://js-design-wood:9003"
+      elastic: "http://elasticsearch-master:9200"
+      mongo: "http://js-mongodb:27017"
+      redis: "http://js-redis-headless:6379"
+      loki: "http://js-loki-stack:3100"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jsdesign-exporter
+  namespace: default
+  labels:
+    exporter: jsdesign
+spec:
+  replicas: 1
+  minReadySeconds: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      exporter: jsdesign
+  template:
+    metadata:
+      labels:
+        exporter: jsdesign
+    spec:
+      imagePullSecrets: []
+      containers:
+        - name: jsdesign-exporter
+          image: "registry.js.design/base/jsdesign-exporter:v1"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+
+          volumeMounts:
+            - name: host-time
+              mountPath: /etc/localtime
+
+            - name: config
+              mountPath: /app/exporter/config/config.yaml
+              subPath: config.yaml
+
+      volumes:
+        - name: host-time
+          hostPath:
+            path: /etc/localtime
+        - name: config
+          configMap:
+            name: jsdesign-exporter-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jsdesign-exporter-svc
+  namespace: default
+  labels:
+    exporter: jsdesign
+  annotations:
+    prometheus.io/port: "8081"
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+    - name: http
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+      nodePort: 28081
+  selector:
+    exporter: jsdesign
+  sessionAffinity: None
+  type: NodePort

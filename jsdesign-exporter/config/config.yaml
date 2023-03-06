@@ -2,7 +2,15 @@ server:
   port: 8081
 
 domainlist:
-  baidu: "www.baidu.com"
-  qq: "www.qq.com"
-  weix: "www.weix.com"
-  jsdesign: "js.design"
+  #  imaged: "http://js-design-imaged:3004"
+  #  parser: "http://js-design-parser:3002"
+  #  picture: "http://js-design-picture:9005"
+  kubernetes: "https://kubernetes:443"
+  cms: "http://js-design-cms:9090"
+  norris: "http://js-design-norris:9001"
+  hedwig: "http://js-design-hedwig:3011"
+  server: "http://js-design-server:3002"
+  nginx: "http://js-design-nginx:80"
+  search: "http://js-design-search:9003"
+  wood: "http://js-design-wood:9003"
+

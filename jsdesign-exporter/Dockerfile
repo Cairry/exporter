@@ -14,4 +14,6 @@ RUN go mod tidy && \
 FROM busybox:glibc
 RUN mkdir -p /app/exporter
 COPY --from=build /root/jsdesign-exporter /app/exporter
+
+WORKDIR /app/exporter
 ENTRYPOINT ["/app/exporter/jsdesign-exporter"]
