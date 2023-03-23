@@ -17,7 +17,7 @@ var (
 	UrlStateCode int
 	// EmptyRegistry 清空默认指标
 	EmptyRegistry = prometheus.NewRegistry()
-	// 带动态标签的 counter
+	// 带动态标签的 Gauge
 	cc = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "url_interface_state_code",
