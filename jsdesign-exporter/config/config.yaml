@@ -1,10 +1,8 @@
-server:
+exporter:
   port: 8081
 
 domainlist:
-  #  imaged: "http://js-design-imaged:3004"
-  #  parser: "http://js-design-parser:3002"
-  #  picture: "http://js-design-picture:9005"
+  # 服务名称: "接口URL"
   kubernetes: "https://kubernetes:443"
   cms: "http://js-design-cms:9090"
   norris: "http://js-design-norris:9001"

@@ -13,8 +13,15 @@ var (
 	resultMap = make(map[string]map[string]string)
 	// DomainMap 获取最终子map
 	DomainMap = make(map[string]string)
-	ServerMap = make(map[string]string)
 )
+
+type Exporter struct {
+	Port string `yaml:"port"`
+}
+
+type ServerConfig struct {
+	Exporter Exporter
+}
 
 func Config() {
 
@@ -38,11 +45,6 @@ func Config() {
 	// 获取 resultMap 中的value 子map「如：map[baidu:www.baidu.com qq:www.qq.com]」
 	for key, value := range resultMap["domainlist"] {
 		DomainMap[key] = value
-	}
-
-	// 获取端口号
-	for portKey, portValue := range resultMap["server"] {
-		ServerMap[portKey] = portValue
 	}
 
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"exporter/config"
+	"exporter/global"
+	"exporter/initialize"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -39,7 +41,7 @@ func Gauge(srvName, domainName string) {
 
 	_, err := client.Get(domainName)
 	if err != nil {
-		fmt.Printf("[ERROR %s]: 访问接口异常,%s\n", time.Now(), err)
+		global.GvaLogger.Sugar().Errorf("接口访问异常: %v", err.Error())
 		UrlStateCode = 0
 	} else {
 		UrlStateCode = 1
@@ -55,14 +57,14 @@ func Gauge(srvName, domainName string) {
 
 func RunServer() {
 
-	fmt.Printf("[INFO %s]: 服务已就绪!\n", time.Now())
+	global.GvaLogger.Info("Server Started Successful.")
 
 	// 注册指标
 	EmptyRegistry.MustRegister(cc)
 
 	http.HandleFunc("/metrics", func(writer http.ResponseWriter, request *http.Request) {
 
-		fmt.Printf("[INFO %s]: --- 开始抓取指标! ---\n", time.Now())
+		global.GvaLogger.Info("--- 开始抓取指标! ---")
 		for srvName, domainName := range config.DomainMap {
 
 			// 探测 Domain 状态
@@ -74,7 +76,7 @@ func RunServer() {
 			promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}).ServeHTTP(writer, request)
 	})
 
-	if err := http.ListenAndServe(":"+config.ServerMap["port"], nil); err != nil {
+	if err := http.ListenAndServe(":"+global.GvaServerConfig.Exporter.Port, nil); err != nil {
 		fmt.Println(err)
 	}
 
@@ -83,7 +85,10 @@ func RunServer() {
 func main() {
 
 	// 初始化配置文件
+	initialize.InitConfig()
 	config.Config()
+	// 初始化日志
+	initialize.InitLogger()
 
 	// 启动服务
 	RunServer()
