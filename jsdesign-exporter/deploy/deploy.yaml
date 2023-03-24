@@ -5,7 +5,7 @@ metadata:
   namespace: default
 data:
   config.yaml: |-
-    server:
+    exporter:
       port: 8081
 
     domainlist:
