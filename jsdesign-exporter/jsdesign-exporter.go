@@ -9,19 +9,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"strings"
 	"time"
 )
 
 var (
 	// UrlStateCode url状态信息
 	UrlStateCode = make(map[string]int)
+	// CertRemainingTime SSL 证书剩余时间
+	CertRemainingTime = make(map[string]int)
 	// EmptyRegistry 清空默认指标
 	EmptyRegistry = prometheus.NewRegistry()
 )
 
 // Monitor 指标采集器
 type Monitor struct {
-	InterfaceStatusCode *prometheus.Desc
+	InterfaceStatusCode  *prometheus.Desc
+	SSLCertRemainingRime *prometheus.Desc
 }
 
 /*
@@ -40,6 +44,13 @@ func NewMonitorMetrics() *Monitor {
 			[]string{"app", "url"},
 			nil,
 		),
+
+		SSLCertRemainingRime: prometheus.NewDesc(
+			"ssl_cert_remaining_time",
+			"Cert Remaining Time",
+			[]string{"url"},
+			nil,
+		),
 	}
 }
 
@@ -51,6 +62,7 @@ func NewMonitorMetrics() *Monitor {
 func (m Monitor) Describe(descs chan<- *prometheus.Desc) {
 	//TODO implement me
 	descs <- m.InterfaceStatusCode
+	descs <- m.SSLCertRemainingRime
 }
 
 /*
@@ -65,6 +77,7 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 		// 探测 Domain 状态
 		go Gauge(srvName, domainName)
 
+		// 注册 url 状态指标
 		metrics <- prometheus.MustNewConstMetric(
 			m.InterfaceStatusCode,
 			prometheus.GaugeValue,
@@ -72,7 +85,31 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 			srvName,
 			domainName,
 		)
+
+		// 注册 SSL 证书有效期指标
+		protocolType := strings.Split(domainName, ":")
+		if protocolType[0] == "https" {
+			metrics <- prometheus.MustNewConstMetric(
+				m.SSLCertRemainingRime,
+				prometheus.GaugeValue,
+				float64(CertRemainingTime[domainName]),
+				domainName,
+			)
+		}
+
 	}
+}
+
+/*
+	定义 HTTP client 配置
+*/
+var client = &http.Client{
+	// 设置请求超时时间
+	Timeout: 1 * time.Second,
+	// 跳过安全检查
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	},
 }
 
 /*
@@ -80,21 +117,36 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 	用于获取状态信息, 并将信息状态返回给 map.
 */
 func Gauge(srvName, domainName string) {
-	client := &http.Client{
-		// 设置请求超时时间
-		Timeout: 1 * time.Second,
-		// 跳过安全检查
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-	_, err := client.Get(domainName)
+
+	resp, err := client.Get(domainName)
 	if err != nil {
 		global.GvaLogger.Sugar().Errorf("接口访问异常: %v", err.Error())
 		UrlStateCode[srvName] = 0
 	} else {
 		UrlStateCode[srvName] = 1
 	}
+
+	if resp == nil {
+		global.GvaLogger.Error("请求未响应")
+		return
+	}
+
+	// 证书为空, 跳过检测
+	if resp.TLS == nil {
+		return
+	}
+
+	// 获取证书信息
+	certs := resp.TLS.PeerCertificates[0]
+	// 获取当前时间
+	currentTime := time.Now().Unix()
+	// 获取有效期时间
+	certTime := certs.NotAfter.Unix()
+	// 计算过期时间
+	TimeRemaining := time.Unix(certTime, 0).Sub(time.Unix(currentTime, 0)).Seconds() / 86400
+	CertRemainingTime[domainName] = int(TimeRemaining)
+	//fmt.Println("证书有效期：", certs.NotBefore.Format(time.RFC3339), "-", certs.NotAfter.Format(time.RFC3339))
+
 }
 
 /*
@@ -105,7 +157,7 @@ func RunServer() {
 	global.GvaLogger.Info("Server Started Successful.")
 
 	// 注册指标
-	fmt.Println(NewMonitorMetrics())
+	//fmt.Println(NewMonitorMetrics())
 	EmptyRegistry.MustRegister(NewMonitorMetrics())
 
 	http.HandleFunc("/metrics", func(writer http.ResponseWriter, request *http.Request) {
