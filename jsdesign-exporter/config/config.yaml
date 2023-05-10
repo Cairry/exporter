@@ -11,4 +11,5 @@ domainlist:
   nginx: "http://js-design-nginx:80"
   search: "http://js-design-search:9003"
   wood: "http://js-design-wood:9003"
+  baidu: "https://www.baidu.com"
 

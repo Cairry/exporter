@@ -10,16 +10,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
 var (
 	// UrlStateCode url状态信息
-	UrlStateCode = make(map[string]int)
+	UrlStateCode = sync.Map{}
 	// CertRemainingTime SSL 证书剩余时间
-	CertRemainingTime = make(map[string]int)
+	CertRemainingTime = sync.Map{}
 	// EmptyRegistry 清空默认指标
 	EmptyRegistry = prometheus.NewRegistry()
+	wg            sync.WaitGroup
+	lock          sync.Mutex
 )
 
 // Monitor 指标采集器
@@ -75,29 +78,37 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 	//TODO implement me
 	for srvName, domainName := range config.DomainMap {
 		// 探测 Domain 状态
+		wg.Add(1)
+		lock.Lock()
 		go Gauge(srvName, domainName)
+		lock.Unlock()
+		wg.Wait()
 
 		// 注册 url 状态指标
+		srvNameValue, _ := UrlStateCode.Load(srvName)
 		metrics <- prometheus.MustNewConstMetric(
 			m.InterfaceStatusCode,
 			prometheus.GaugeValue,
-			float64(UrlStateCode[srvName]),
+			float64(srvNameValue.(int)),
 			srvName,
 			domainName,
 		)
 
 		// 注册 SSL 证书有效期指标
-		protocolType := strings.Split(domainName, ":")
-		if protocolType[0] == "https" {
-			metrics <- prometheus.MustNewConstMetric(
-				m.SSLCertRemainingRime,
-				prometheus.GaugeValue,
-				float64(CertRemainingTime[domainName]),
-				domainName,
-			)
+		domainNameValue, _ := CertRemainingTime.Load(domainName)
+		if domainNameValue != nil {
+			protocolType := strings.Split(domainName, ":")
+			if protocolType[0] == "https" {
+				metrics <- prometheus.MustNewConstMetric(
+					m.SSLCertRemainingRime,
+					prometheus.GaugeValue,
+					domainNameValue.(float64),
+					domainName,
+				)
+			}
 		}
-
 	}
+
 }
 
 /*
@@ -118,12 +129,14 @@ var client = &http.Client{
 */
 func Gauge(srvName, domainName string) {
 
+	defer wg.Done()
+
 	resp, err := client.Get(domainName)
 	if err != nil {
 		global.GvaLogger.Sugar().Errorf("接口访问异常: %v", err.Error())
-		UrlStateCode[srvName] = 0
+		UrlStateCode.Store(srvName, 0)
 	} else {
-		UrlStateCode[srvName] = 1
+		UrlStateCode.Store(srvName, 1)
 	}
 
 	if resp == nil {
@@ -144,7 +157,7 @@ func Gauge(srvName, domainName string) {
 	certTime := certs.NotAfter.Unix()
 	// 计算过期时间
 	TimeRemaining := time.Unix(certTime, 0).Sub(time.Unix(currentTime, 0)).Seconds() / 86400
-	CertRemainingTime[domainName] = int(TimeRemaining)
+	CertRemainingTime.Store(domainName, TimeRemaining)
 	//fmt.Println("证书有效期：", certs.NotBefore.Format(time.RFC3339), "-", certs.NotAfter.Format(time.RFC3339))
 
 }
