@@ -8,7 +8,7 @@ ENV GO111MODULE=on \
 WORKDIR /root
 COPY . /root
 RUN go mod tidy && \
-    go build -o jsdesign-exporter ./jsdesign-exporter.go && \
+    go build -o jsdesign-exporter ./main.go && \
     chmod 777 jsdesign-exporter
 
 FROM busybox:glibc
