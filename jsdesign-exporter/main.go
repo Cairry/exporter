@@ -21,7 +21,6 @@ var (
 	CertRemainingTime = sync.Map{}
 	// EmptyRegistry 清空默认指标
 	EmptyRegistry = prometheus.NewRegistry()
-	ch            = make(chan int)
 	wg            sync.WaitGroup
 )
 
@@ -80,9 +79,11 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 		// 探测 Domain 状态
 		wg.Add(1)
 
-		go Gauge(srvName, domainName)
+		go func(srvName, domainName string) {
+			Gauge(srvName, domainName)
+		}(srvName, domainName)
 
-		<-ch
+		wg.Wait()
 
 		// 注册 url 状态指标
 		srvNameValue, _ := UrlStateCode.Load(srvName)
@@ -108,8 +109,6 @@ func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 			}
 		}
 	}
-
-	wg.Wait()
 
 }
 
@@ -137,10 +136,8 @@ func Gauge(srvName, domainName string) {
 	if err != nil {
 		global.GvaLogger.Sugar().Errorf("接口访问异常: %v", err.Error())
 		UrlStateCode.Store(srvName, 0)
-		ch <- 0
 	} else {
 		UrlStateCode.Store(srvName, 1)
-		ch <- 1
 	}
 	if resp == nil {
 		global.GvaLogger.Error("请求未响应")
