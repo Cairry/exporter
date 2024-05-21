@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -27,7 +26,7 @@ var (
 // Monitor 指标采集器
 type Monitor struct {
 	InterfaceStatusCode  *prometheus.Desc
-	SSLCertRemainingRime *prometheus.Desc
+	SSLCertRemainingTime *prometheus.Desc
 }
 
 /*
@@ -47,7 +46,7 @@ func NewMonitorMetrics() *Monitor {
 			nil,
 		),
 
-		SSLCertRemainingRime: prometheus.NewDesc(
+		SSLCertRemainingTime: prometheus.NewDesc(
 			"ssl_cert_remaining_time",
 			"Cert Remaining Time",
 			[]string{"url"},
@@ -64,7 +63,7 @@ func NewMonitorMetrics() *Monitor {
 func (m Monitor) Describe(descs chan<- *prometheus.Desc) {
 	//TODO implement me
 	descs <- m.InterfaceStatusCode
-	descs <- m.SSLCertRemainingRime
+	descs <- m.SSLCertRemainingTime
 }
 
 /*
@@ -74,42 +73,47 @@ func (m Monitor) Describe(descs chan<- *prometheus.Desc) {
 	收集的指标信息来自雨Describe方法中传递, 可以并发执行抓取工作, 但是必须保证线程的安全.
 */
 func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
-	//TODO implement me
+	var wg sync.WaitGroup
+	results := make(chan struct {
+		srvName, domainName string
+		stateCode           int
+		remainingTime       float64
+	}, len(config.DomainMap))
+
 	for srvName, domainName := range config.DomainMap {
-		// 探测 Domain 状态
 		wg.Add(1)
-
 		go func(srvName, domainName string) {
-			Gauge(srvName, domainName)
+			defer wg.Done()
+			stateCode, remainingTime := Gauge(srvName, domainName)
+			results <- struct {
+				srvName, domainName string
+				stateCode           int
+				remainingTime       float64
+			}{srvName, domainName, stateCode, remainingTime}
 		}(srvName, domainName)
+	}
 
-		wg.Wait()
+	wg.Wait()
+	close(results)
 
-		// 注册 url 状态指标
-		srvNameValue, _ := UrlStateCode.Load(srvName)
+	for result := range results {
 		metrics <- prometheus.MustNewConstMetric(
 			m.InterfaceStatusCode,
 			prometheus.GaugeValue,
-			float64(srvNameValue.(int)),
-			srvName,
-			domainName,
+			float64(result.stateCode),
+			result.srvName,
+			result.domainName,
 		)
 
-		// 注册 SSL 证书有效期指标
-		domainNameValue, _ := CertRemainingTime.Load(domainName)
-		if domainNameValue != nil {
-			protocolType := strings.Split(domainName, ":")
-			if protocolType[0] == "https" {
-				metrics <- prometheus.MustNewConstMetric(
-					m.SSLCertRemainingRime,
-					prometheus.GaugeValue,
-					domainNameValue.(float64),
-					domainName,
-				)
-			}
+		if result.remainingTime >= 0 {
+			metrics <- prometheus.MustNewConstMetric(
+				m.SSLCertRemainingTime,
+				prometheus.GaugeValue,
+				result.remainingTime,
+				result.domainName,
+			)
 		}
 	}
-
 }
 
 /*
@@ -128,25 +132,20 @@ var client = &http.Client{
 	Gauge 方法
 	用于获取状态信息, 并将信息状态返回给 map.
 */
-func Gauge(srvName, domainName string) {
-
-	defer wg.Done()
-
+func Gauge(srvName, domainName string) (int, float64) {
 	resp, err := client.Get(domainName)
 	if err != nil {
 		global.GvaLogger.Sugar().Errorf("接口访问异常: %v", err.Error())
 		UrlStateCode.Store(srvName, 0)
-	} else {
-		UrlStateCode.Store(srvName, 1)
+		return 0, -1
 	}
-	if resp == nil {
-		global.GvaLogger.Error("请求未响应")
-		return
-	}
+	defer resp.Body.Close()
+
+	UrlStateCode.Store(srvName, 1)
 
 	// 证书为空, 跳过检测
 	if resp.TLS == nil {
-		return
+		return 1, -1
 	}
 
 	// 获取证书信息
@@ -160,6 +159,7 @@ func Gauge(srvName, domainName string) {
 	CertRemainingTime.Store(domainName, TimeRemaining)
 	//fmt.Println("证书有效期：", certs.NotBefore.Format(time.RFC3339), "-", certs.NotAfter.Format(time.RFC3339))
 
+	return 1, TimeRemaining
 }
 
 /*
