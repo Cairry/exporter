@@ -16,7 +16,8 @@ var (
 )
 
 type Exporter struct {
-	Port string `yaml:"port"`
+	Port           string `yaml:"port"`
+	RequestTimeout int    `yaml:"requestTimeout"`
 }
 
 type ServerConfig struct {

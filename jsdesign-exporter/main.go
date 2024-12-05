@@ -21,6 +21,7 @@ var (
 	// EmptyRegistry 清空默认指标
 	EmptyRegistry = prometheus.NewRegistry()
 	wg            sync.WaitGroup
+	client        *http.Client
 )
 
 // Monitor 指标采集器
@@ -74,58 +75,31 @@ func (m Monitor) Describe(descs chan<- *prometheus.Desc) {
 */
 func (m Monitor) Collect(metrics chan<- prometheus.Metric) {
 	var wg sync.WaitGroup
-	results := make(chan struct {
-		srvName, domainName string
-		stateCode           int
-		remainingTime       float64
-	}, len(config.DomainMap))
-
 	for srvName, domainName := range config.DomainMap {
 		wg.Add(1)
 		go func(srvName, domainName string) {
 			defer wg.Done()
 			stateCode, remainingTime := Gauge(srvName, domainName)
-			results <- struct {
-				srvName, domainName string
-				stateCode           int
-				remainingTime       float64
-			}{srvName, domainName, stateCode, remainingTime}
+			metrics <- prometheus.MustNewConstMetric(
+				m.InterfaceStatusCode,
+				prometheus.GaugeValue,
+				float64(stateCode),
+				srvName,
+				domainName,
+			)
+
+			if remainingTime >= 0 {
+				metrics <- prometheus.MustNewConstMetric(
+					m.SSLCertRemainingTime,
+					prometheus.GaugeValue,
+					remainingTime,
+					domainName,
+				)
+			}
 		}(srvName, domainName)
 	}
 
 	wg.Wait()
-	close(results)
-
-	for result := range results {
-		metrics <- prometheus.MustNewConstMetric(
-			m.InterfaceStatusCode,
-			prometheus.GaugeValue,
-			float64(result.stateCode),
-			result.srvName,
-			result.domainName,
-		)
-
-		if result.remainingTime >= 0 {
-			metrics <- prometheus.MustNewConstMetric(
-				m.SSLCertRemainingTime,
-				prometheus.GaugeValue,
-				result.remainingTime,
-				result.domainName,
-			)
-		}
-	}
-}
-
-/*
-	定义 HTTP client 配置
-*/
-var client = &http.Client{
-	// 设置请求超时时间
-	Timeout: 1 * time.Second,
-	// 跳过安全检查
-	Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	},
 }
 
 /*
@@ -149,17 +123,13 @@ func Gauge(srvName, domainName string) (int, float64) {
 	}
 
 	// 获取证书信息
-	certs := resp.TLS.PeerCertificates[0]
-	// 获取当前时间
-	currentTime := time.Now().Unix()
-	// 获取有效期时间
-	certTime := certs.NotAfter.Unix()
-	// 计算过期时间
-	TimeRemaining := time.Unix(certTime, 0).Sub(time.Unix(currentTime, 0)).Seconds() / 86400
-	CertRemainingTime.Store(domainName, TimeRemaining)
-	//fmt.Println("证书有效期：", certs.NotBefore.Format(time.RFC3339), "-", certs.NotAfter.Format(time.RFC3339))
+	if len(resp.TLS.PeerCertificates) > 0 {
+		cert := resp.TLS.PeerCertificates[0]
+		remainingTime := time.Until(cert.NotAfter).Hours() / 24
+		return 1, remainingTime
+	}
 
-	return 1, TimeRemaining
+	return 1, -1
 }
 
 /*
@@ -170,7 +140,6 @@ func RunServer() {
 	global.GvaLogger.Info("Server Started Successful.")
 
 	// 注册指标
-	//fmt.Println(NewMonitorMetrics())
 	EmptyRegistry.MustRegister(NewMonitorMetrics())
 
 	http.HandleFunc("/metrics", func(writer http.ResponseWriter, request *http.Request) {
@@ -180,6 +149,10 @@ func RunServer() {
 			promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}).ServeHTTP(writer, request)
 	})
 
+	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = fmt.Fprintf(writer, "hello")
+	})
+
 	if err := http.ListenAndServe(":"+global.GvaServerConfig.Exporter.Port, nil); err != nil {
 		fmt.Println(err)
 	}
@@ -187,14 +160,20 @@ func RunServer() {
 }
 
 func main() {
-
 	// 初始化配置文件
 	initialize.InitConfig()
 	config.Config()
 	// 初始化日志
 	initialize.InitLogger()
-
+	// 定义 HTTP client 配置
+	client = &http.Client{
+		// 设置请求超时时间
+		Timeout: time.Duration(global.GvaServerConfig.Exporter.RequestTimeout) * time.Second,
+		// 跳过安全检查
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	// 启动服务
 	RunServer()
-
 }

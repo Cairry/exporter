@@ -1,5 +1,7 @@
 exporter:
   port: 8081
+  # 域名请求超时时间(s)
+  requestTimeout: 10
 
 domainlist:
   # 服务名称: "接口URL"
