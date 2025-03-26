@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: log2metric-exporter
+  name: log2metric-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log2metric-exporter
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: log2metric-exporter
+    spec:
+      containers:
+        - env:
+            # 匹配 topic 前缀
+            - name: TOPIC_PREFIX
+              value: ztest
+            # 匹配指定的 topic, 多个 topic 逗号隔开;
+            # - name: TOPICS
+            #   value: ztest-node-service
+            # kafka broker 节点, 多个节点逗号隔开;
+            - name: KAFKA_BROKERS
+              value: 1.1.1.1:9092
+            - name: aliyun_logs_test-log2metric-exporter
+              value: stdout
+
+          name: log2metric-exporter
+          image: {imageName}
+          imagePullPolicy: IfNotPresent
+
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /hi
+              port: 9099
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+
+          ports:
+            - containerPort: 9099
+              name: http
+              protocol: TCP
+
+          readinessProbe:
+            failureThreshold: 1
+            httpGet:
+              path: /hi
+              port: 9099
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+
+          securityContext:
+            privileged: false
+
+      imagePullSecrets:
+        - name: harbor-auth
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: log2metric-exporter
+  name: log2metric-exporter
+  namespace: monitoring
+spec:
+  ports:
+    - name: http
+      port: 9099
+      protocol: TCP
+      targetPort: 9099
+  selector:
+    app: log2metric-exporter
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
