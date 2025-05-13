@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="cb596ec2-e930-48ec-beb4-e7c53314901f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/base.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/base_desc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/counter/desc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/counter/dynamic.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/counter/static.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/gauge/desc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/gauge/dynamic.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/gauge/static.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/histogram/desc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/histogram/dynamic.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/histogram/static.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/summary/desc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/summary/dynamic.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example-exporter/collectors/summary/static.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/counter.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/counter_2.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/gauge.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/gauge_2.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/histogram_2.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/collectors/summary_2.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/example-exporter/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example-exporter/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/example-exporter/main.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" url="file://$USER_HOME$/go/go1.18" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2pnLG8bf6rspcAmTQID7jyXitFd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultGoTemplateProperty": "Go File",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "configurable..is.expanded": "false",
+    "configurable.GoLibrariesConfigurable.is.expanded": "true",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "last_opened_file_path": "/Users/zuxuan/Documents/workspace/Github/exporter",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "settings.editor.selected.configurable": "go.sdk"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/example-exporter/collectors/counter" />
+      <recent name="$PROJECT_DIR$/example-exporter/collectors" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+</project>
